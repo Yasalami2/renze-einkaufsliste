@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<!-- saved from url=(0077)https://lernen.zbw.ch/pluginfile.php/148408/mod_resource/content/0/index.html -->
+<html lang="de"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Einkaufsliste</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+    h1 { color: #333; }
+    .form-group { margin: 10px 0; }
+    input, select, button { padding: 8px 12px; font-size: 14px; }
+    button { background: #4CAF50; color: white; border: none; cursor: pointer; border-radius: 4px; }
+    button:hover { background: #45a049; }
+    button.delete { background: #f44336; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #4CAF50; color: white; }
+    .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+    .error { background: #ffebee; color: #c62828; }
+    .success { background: #e8f5e9; color: #2e7d32; }
+  </style>
+</head>
+<body>
+  <h1>🛒 Einkaufsliste</h1>
+
+  <!-- ============================================================ -->
+  <!--  KONFIGURATION: Ersetzen Sie die URL durch Ihre API-Gateway  -->
+  <!--  Invoke-URL aus Aufgabe 3.3                                  -->
+  <!-- ============================================================ -->
+  <script>
+    const API_URL = "https://kuvi2urx2l.execute-api.us-east-1.amazonaws.com";
+  </script>
+
+  <div class="form-group">
+    <input type="text" id="artikel" placeholder="Artikel (z.B. Milch)">
+    <input type="number" id="anzahl" value="1" min="1" style="width:60px">
+    <select id="kategorie">
+      <option>Allgemein</option>
+      <option>Milchprodukte</option>
+      <option>Obst &amp; Gemüse</option>
+      <option>Backwaren</option>
+      <option>Getränke</option>
+    </select>
+    <button onclick="addItem()">Hinzufügen</button>
+  </div>
+
+  <div id="status"><div class="status error">Fehler beim Laden: Failed to fetch<br>Prüfen Sie API_URL und CORS-Konfiguration.</div></div>
+  <table>
+    <thead><tr><th>Anzahl</th><th>Artikel</th><th>Kategorie</th><th>Aktion</th></tr></thead>
+    <tbody id="liste"></tbody>
+  </table>
+
+  <script>
+    async function loadItems() {
+      try {
+        const res = await fetch(API_URL + "/items");
+        const items = await res.json();
+        const tbody = document.getElementById("liste");
+        tbody.innerHTML = "";
+        items.forEach(item => {
+          tbody.innerHTML += `<tr>
+            <td>${item.Anzahl}</td>
+            <td>${item.Artikel}</td>
+            <td>${item.Kategorie}</td>
+            <td><button class="delete" onclick="deleteItem('${item.ArtikelID}','${item.Kategorie}')">✕</button></td>
+          </tr>`;
+        });
+      } catch (e) {
+        document.getElementById("status").innerHTML =
+          `<div class="status error">Fehler beim Laden: ${e.message}<br>Prüfen Sie API_URL und CORS-Konfiguration.</div>`;
+      }
+    }
+
+    async function addItem() {
+      const artikel = document.getElementById("artikel").value;
+      const anzahl = document.getElementById("anzahl").value;
+      const kategorie = document.getElementById("kategorie").value;
+      if (!artikel) return;
+      try {
+        await fetch(API_URL + "/items", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ artikel, anzahl: Number(anzahl), kategorie })
+        });
+        document.getElementById("artikel").value = "";
+        document.getElementById("status").innerHTML =
+          `<div class="status success">«${artikel}» hinzugefügt!</div>`;
+        loadItems();
+      } catch (e) {
+        document.getElementById("status").innerHTML =
+          `<div class="status error">Fehler: ${e.message}</div>`;
+      }
+    }
+
+    async function deleteItem(id, kategorie) {
+      await fetch(API_URL + "/items/" + id, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kategorie })
+      });
+      loadItems();
+    }
+
+    loadItems();
+  </script>
+
+</body></html>
